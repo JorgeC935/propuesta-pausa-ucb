@@ -102,6 +102,21 @@
 
   window.PAUSA_UI = { wire: wire, waLink: waLink, catalogLink: catalogLink, status: status, isDemo: isDemo };
   wire(document);
+
+  // La configuracion administrada en D1 tiene prioridad sobre config.js.
+  // Si la API falla o el campo esta vacio, permanece el telefono publicado.
+  fetch("/api/configuracion", { cache: "no-store", credentials: "omit" })
+    .then(function (r) { if (!r.ok) throw new Error("Config no disponible"); return r.json(); })
+    .then(function (datos) {
+      var numero = String(datos.whatsapp_contacto || "");
+      if (!/^[1-9][0-9]{8,14}$/.test(numero)) return;
+      C.WA_NUMBER = numero;
+      isDemo = false;
+      window.PAUSA_UI.isDemo = false;
+      wire(document);
+    })
+    .catch(function () { /* Seguir usando el numero original. */ });
+
   paintStatus();
   setInterval(paintStatus, 60000);
 })();

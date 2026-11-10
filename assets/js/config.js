@@ -41,11 +41,10 @@ window.PAUSA = {
   INSTAGRAM: "https://www.instagram.com/pausa.coffeetja/",
   TIKTOK: "https://www.tiktok.com/@pausa.coffeetja", // [VERIFICAR usuario exacto]
 
-  /* --- Hoja de puntos -----------------------------------------------
-     Pegar aquí el enlace de la pestaña «Consulta» publicada como CSV
-     (Archivo > Compartir > Publicar en la web > Consulta > CSV).
-     Si queda vacío, la consulta de puntos muestra un aviso de error.   */
-  SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGRYqLiNUBNNWCeuYbgLXp2PiuIYVsHjgDSVX4sdldyp6DkqnTX6wsC3Ap9k7_LVEHMYMYO6cfZIs_/pub?gid=1016881324&single=true&output=csv",
+  /* La consulta V2 utiliza D1. Esta URL se deja vacia en la rama V2.
+     La version original de GitHub Pages conserva su configuracion anterior
+     hasta que se migren los saldos y el negocio autorice el cambio. */
+  SHEET_CSV_URL: "",
 
   SELLOS_META: 10,
   ACTUALIZADO: "14/10/2026"
