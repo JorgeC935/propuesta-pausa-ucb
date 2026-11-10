@@ -330,6 +330,8 @@ $("form-sello").addEventListener("submit", async (evento) => {
       // El registro ya quedó confirmado por el servidor.
     }
 
+    // Actualizar el historial despues de registrar la compra.
+    void cargarMovimientosPersonal();
     $("telefono").focus();
     $("telefono").select();
 
@@ -439,6 +441,8 @@ $("boton-canjear").addEventListener("click", async () => {
       Number(resultado.saldo_actual),
       meta
     );
+    // Refrescar el historial tras un canje confirmado.
+    void cargarMovimientosPersonal();
 
   } catch (error) {
     // Un saldo insuficiente es una respuesta definitiva.
@@ -609,14 +613,16 @@ async function corregirMovimientoPersonal(movimiento, tipo) {
 
     if (!resultado) return;
 
+    await cargarMovimientosPersonal();
+
+    // Mostrar el resultado DESPUES de recargar la lista,
+    // para que el mensaje no desaparezca inmediatamente.
     mensaje(
       "estado-movimientos",
       resultado.repetido
         ? "Esta corrección ya estaba registrada."
         : "Corrección realizada correctamente."
     );
-
-    await cargarMovimientosPersonal();
 
     const telefono = obtenerTelefono();
 

@@ -1,11 +1,7 @@
-/* Service worker mínimo de Pausa.
-   Sirve para dos cosas: que Chrome en Android ofrezca «Instalar aplicación»
-   y que la página abra aunque no haya señal por un momento.
-   Siempre pide primero a la red (así los cambios de la web se ven al instante)
-   y usa la copia guardada solo si no hay conexión.
-   Los CSV de sellos NUNCA se guardan: los sellos deben ser los del momento. */
-var VERSION = "pausa-v2";
-var SHELL = [
+/* Pausa V2: PWA publica sin guardar informacion privada en CacheStorage.
+   Nunca interceptar API, paginas del personal ni administracion. */
+const VERSION = "pausa-publica-v3";
+const SHELL = [
   "./puntos.html",
   "./assets/css/base.css",
   "./assets/js/config.js",
@@ -15,44 +11,70 @@ var SHELL = [
   "./manifest.webmanifest"
 ];
 
-self.addEventListener("install", function (e) {
-  e.waitUntil(
+const PUBLIC_SCRIPTS = new Set([
+  "assets/js/config.js", "assets/js/main.js",
+  "assets/js/puntos.js", "assets/js/qrcode.js"
+]);
+
+function isPublicCacheable(url) {
+  const scopePath = new URL(self.registration.scope).pathname;
+  if (!url.pathname.startsWith(scopePath)) return false;
+  const path = url.pathname.slice(scopePath.length);
+
+  if (path === "" || path === "index.html" || path === "index" ||
+      path === "puntos.html" || path === "puntos" ||
+      path === "qr.html" || path === "qr" ||
+      path === "manifest.webmanifest") return true;
+
+  if (PUBLIC_SCRIPTS.has(path)) return true;
+  return /^(assets\/(?:css|fonts|img|icons)\/)/.test(path);
+}
+
+self.addEventListener("install", function(event) {
+  event.waitUntil(
     caches.open(VERSION)
-      .then(function (c) { return c.addAll(SHELL); })
-      .then(function () { return self.skipWaiting(); })
+      .then(cache => cache.addAll(SHELL))
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener("activate", function (e) {
-  e.waitUntil(
-    caches.keys()
-      .then(function (keys) {
-        return Promise.all(keys.filter(function (k) { return k !== VERSION; }).map(function (k) { return caches.delete(k); }));
-      })
-      .then(function () { return self.clients.claim(); })
+self.addEventListener("activate", function(event) {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys
+        .filter(key => key.startsWith("pausa-") && key !== VERSION)
+        .map(key => caches.delete(key))
+    )).then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", function (e) {
-  var req = e.request;
+self.addEventListener("fetch", function(event) {
+  const req = event.request;
   if (req.method !== "GET") return;
-  var url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;   // Google Sheets, WhatsApp, Maps: directo a la red
-  if (/\.csv$/i.test(url.pathname)) return;           // sellos: siempre los del momento, sin caché
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  // Lista explicita: cualquier recurso no publico pasa directo a la red.
+  // Incluye /api/*, /personal, /administracion y otras futuras rutas privadas.
+  if (!isPublicCacheable(url)) return;
 
-  e.respondWith(
-    fetch(req, { cache: "no-cache" })   // revalida siempre: ignora la caché de 10 min de GitHub Pages
-      .then(function (res) {
-        if (res && res.ok) {
-          var copy = res.clone();
-          caches.open(VERSION).then(function (c) { c.put(req, copy); });
-        }
-        return res;
-      })
-      .catch(function () {
-        return caches.match(req, { ignoreSearch: true }).then(function (hit) {
-          return hit || (req.mode === "navigate" ? caches.match("./puntos.html") : Response.error());
-        });
-      })
+  event.respondWith(
+    fetch(req, { cache: "no-cache" }).then(res => {
+      if (res && res.ok) {
+        const copy = res.clone();
+        event.waitUntil(
+          caches.open(VERSION)
+            .then(cache => cache.put(req, copy))
+            .catch(() => {})
+        );
+      }
+      return res;
+    }).catch(async () => {
+      const cached = await caches.match(req, { ignoreSearch: true });
+      if (cached) return cached;
+      if (req.mode === "navigate") {
+        return (await caches.match("./puntos.html")) || Response.error();
+      }
+      return Response.error();
+    })
   );
 });
