@@ -1,0 +1,16 @@
+
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pausa-web-v2-dev",
+  "compatibility_date": "2026-11-10",
+  "pages_build_output_dir": "./dist",
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pausa-v2-dev",
+      "database_id": "3ec22526-4058-413c-9af6-1653106ceb80",
+      "preview_database_id": "DB"
+    }
+  ]
+}

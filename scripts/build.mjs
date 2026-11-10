@@ -12,6 +12,7 @@ const archivos = [
   "qr.html",
   "manifest.webmanifest",
   "sw.js",
+  "_routes.json",
 ];
 
 const carpetas = [
