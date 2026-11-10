@@ -6,6 +6,10 @@ const $ = (id) => document.getElementById(id);
 const CLAVE_COMPRA = "pausa_operacion_pendiente";
 const CLAVE_CANJE = "pausa_canje_pendiente";
 
+// Identifica al usuario que tiene abierta la sesion.
+// Los pendientes quedan separados por empleado en este dispositivo.
+let usuarioActual = null;
+
 const PATRON_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -44,12 +48,20 @@ function mensaje(id, texto, error = false) {
     "mensaje " + (error ? "error" : "exito");
 }
 
-function leerPendiente(clave) {
-  try {
-    const dato = JSON.parse(
-      sessionStorage.getItem(clave)
-    );
+// El almacenamiento es LOCAL al navegador: no contiene claves ni tokens,
+// solo telefono e identificador de una operacion aun no confirmada.
+// Si falla el almacenamiento, NO enviamos una operacion nueva: perder su
+// identificador podria hacer que un reintento generase doble registro.
+function claveLocal(clave) {
+  if (!usuarioActual) return null;
+  return `pausa-v2:${usuarioActual}:${clave}`;
+}
 
+function leerPendiente(clave) {
+  const llave = claveLocal(clave);
+  if (!llave) return null;
+  try {
+    const dato = JSON.parse(localStorage.getItem(llave));
     if (
       dato &&
       /^[0-9]{8}$/.test(dato.telefono) &&
@@ -58,10 +70,31 @@ function leerPendiente(clave) {
       return dato;
     }
   } catch {
-    // No hay una operación pendiente válida.
+    // Lectura del almacenamiento temporalmente no disponible.
   }
-
   return null;
+}
+
+function guardarPendiente(clave, operacion) {
+  const llave = claveLocal(clave);
+  if (!llave) return false;
+  try {
+    localStorage.setItem(llave, JSON.stringify(operacion));
+    // Verificar persistencia antes de enviar una compra o canje.
+    return localStorage.getItem(llave) === JSON.stringify(operacion);
+  } catch {
+    return false;
+  }
+}
+
+function borrarPendiente(clave) {
+  const llave = claveLocal(clave);
+  if (!llave) return;
+  try {
+    localStorage.removeItem(llave);
+  } catch {
+    // Si falla el borrado, el reintento mantiene la misma clave.
+  }
 }
 
 function obtenerTelefono() {
@@ -73,12 +106,14 @@ function telefonoValido(telefono) {
 }
 
 function mostrarLogin() {
+  usuarioActual = null;
   $("cargando").hidden = true;
   $("pantalla-panel").hidden = true;
   $("pantalla-login").hidden = false;
 }
 
 function mostrarPanel(empleado) {
+  usuarioActual = empleado.usuario;
   $("cargando").hidden = true;
   $("pantalla-login").hidden = true;
   $("pantalla-panel").hidden = false;
@@ -289,10 +324,15 @@ $("form-sello").addEventListener("submit", async (evento) => {
       clave_operacion: crypto.randomUUID()
     };
 
-    sessionStorage.setItem(
-      CLAVE_COMPRA,
-      JSON.stringify(operacion)
-    );
+    if (!guardarPendiente(CLAVE_COMPRA, operacion)) {
+      mensaje(
+        "mensaje-sello",
+        "No se pudo guardar el identificador de la compra en " +
+        "este dispositivo. No se envio la operacion.",
+        true
+      );
+      return;
+    }
   }
 
   const boton = evento.currentTarget.querySelector(
@@ -313,7 +353,7 @@ $("form-sello").addEventListener("submit", async (evento) => {
       }
     );
 
-    sessionStorage.removeItem(CLAVE_COMPRA);
+    borrarPendiente(CLAVE_COMPRA);
 
     mensaje(
       "mensaje-sello",
@@ -404,10 +444,15 @@ $("boton-canjear").addEventListener("click", async () => {
       clave_operacion: crypto.randomUUID()
     };
 
-    sessionStorage.setItem(
-      CLAVE_CANJE,
-      JSON.stringify(operacion)
-    );
+    if (!guardarPendiente(CLAVE_CANJE, operacion)) {
+      mensaje(
+        "mensaje-canje",
+        "No se pudo guardar el identificador del canje en " +
+        "este dispositivo. No se envio la operacion.",
+        true
+      );
+      return;
+    }
   }
 
   const boton = $("boton-canjear");
@@ -425,7 +470,7 @@ $("boton-canjear").addEventListener("click", async () => {
       }
     );
 
-    sessionStorage.removeItem(CLAVE_CANJE);
+    borrarPendiente(CLAVE_CANJE);
 
     mensaje(
       "mensaje-canje",
@@ -451,7 +496,7 @@ $("boton-canjear").addEventListener("click", async () => {
       error.datos?.error ===
         "Sellos insuficientes para realizar el canje"
     ) {
-      sessionStorage.removeItem(CLAVE_CANJE);
+      borrarPendiente(CLAVE_CANJE);
 
       try {
         await consultarSaldo(telefono);
@@ -497,13 +542,14 @@ $("cerrar-sesion").addEventListener("click", async () => {
     leerPendiente(CLAVE_CANJE);
 
   if (pendiente) {
-    mensaje(
-      "mensaje-sello",
-      "Existe una operación sin confirmar. " +
-      "Reinténtala antes de cerrar sesión.",
-      true
+    const salir = confirm(
+      "Hay una operacion sin confirmar. Puedes cerrar sesion, " +
+      "pero NO vuelvas a registrar o canjear esa misma operacion " +
+      "desde otra cuenta o dispositivo. Se conservara en este " +
+      "navegador para que este usuario la reintente con la misma clave. " +
+      "¿Cerrar sesion de todos modos?"
     );
-    return;
+    if (!salir) return;
   }
 
   try {
@@ -512,7 +558,11 @@ $("cerrar-sesion").addEventListener("click", async () => {
     });
 
     $("contrasena").value = "";
+    $("telefono").value = "";
     $("resumen-cliente").hidden = true;
+    $("lista-movimientos").replaceChildren();
+    mensaje("mensaje-sello", "");
+    mensaje("mensaje-canje", "");
     mostrarLogin();
 
   } catch (error) {
