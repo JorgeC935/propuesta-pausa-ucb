@@ -207,10 +207,46 @@
                   type="submit">
             Registrar sello
           </button>
+
+          <button id="consultar-saldo"
+                  class="btn btn--secondary"
+                  type="button">
+            Consultar saldo
+          </button>
         </form>
 
         <p id="mensaje-sello"
            class="mensaje" role="status"></p>
+       
+        <section id="resumen-cliente"
+                class="administracion"
+                aria-live="polite"
+                hidden>
+
+          <p>
+            Cliente: <strong id="resumen-telefono"></strong>
+          </p>
+
+          <p style="margin: 12px 0">
+            Sellos disponibles:
+            <strong id="resumen-sellos">0</strong>
+          </p>
+
+          <p id="resumen-meta" class="small"></p>
+
+          <button id="boton-canjear"
+                  class="btn btn--primary ancho"
+                  type="button"
+                  style="margin-top: 16px"
+                  disabled>
+            Canjear recompensa
+          </button>
+
+          <p id="mensaje-canje"
+            class="mensaje"
+            role="status"></p>
+        </section>
+
 
         <div class="separador"></div>
 
