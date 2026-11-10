@@ -1,0 +1,26 @@
+{
+  "name": "propuesta-pausa-ucb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler pages dev dist --ip 127.0.0.1 --port 8788 --compatibility-date=2026-11-10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarcelQuiroF/propuesta-pausa-ucb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MarcelQuiroF/propuesta-pausa-ucb/issues"
+  },
+  "homepage": "https://github.com/MarcelQuiroF/propuesta-pausa-ucb#readme",
+  "devDependencies": {
+    "wrangler": "^4.159.0"
+  }
+}

@@ -1,0 +1,20 @@
+
+# Dependencias de Node.js
+node_modules/
+
+# Archivos temporales de Cloudflare
+.wrangler/
+
+# Variables privadas
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+
+# Registros temporales
+*.log
+
+# Archivos generados para publicación
+dist/
