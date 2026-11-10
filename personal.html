@@ -122,6 +122,70 @@
       margin-bottom: 8px;
     }
 
+    /* Separación estable del acceso administrativo. */
+    #zona-admin {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    #zona-admin h2,
+    #zona-admin p { margin: 0; }
+    #zona-admin p { line-height: 1.5; }
+    #zona-admin a.btn {
+      display: inline-flex;
+      position: static;
+      margin: 2px 0 0;
+      max-width: 100%;
+    }
+
+    /* Historial: controles discretos, arriba de los movimientos. */
+    .historial-controles {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 16px 0 18px;
+    }
+
+    .historial-paginacion {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .historial-controles button {
+      min-height: 36px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.25;
+      cursor: pointer;
+    }
+
+    .historial-controles button:hover:not(:disabled) {
+      background: var(--cream);
+      border-color: var(--ink);
+    }
+
+    .historial-controles button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #movimientos-pagina {
+      white-space: nowrap;
+      color: var(--ink-2);
+      font-size: 0.78rem;
+    }
+
     @media (max-width: 480px) {
       .personal { margin: 24px auto; }
       .tarjeta { padding: 20px; }
@@ -134,7 +198,7 @@
     <header class="cabecera">
       <img src="/assets/img/logo-negro-360.webp"
            alt="Pausa Coffee Express">
-      <h1>Panel del personal</h1>
+      <h1 id="titulo-personal">Panel del personal</h1>
     </header>
 
     <section id="cargando">
@@ -178,6 +242,19 @@
           Cerrar sesión
         </button>
       </div>
+
+      <section id="zona-admin"
+               class="administracion" style="margin:0 0 20px" hidden>
+        <h2>Administración</h2>
+        <p class="small">
+            Gestiona la información del negocio
+            y las cuentas del personal.
+        </p>
+        <a class="btn btn--secondary"
+            id="abrir-admin" href="/administracion">
+            Abrir administración
+        </a>
+      </section>
 
       <div class="tarjeta">
         <h2>Registrar sello</h2>
@@ -251,24 +328,34 @@
         <div class="separador"></div>
 
         <button class="btn btn--secondary ancho"
-                type="button" disabled>
-          Escanear QR — próximamente
+                id="escanear-qr" type="button">
+          Escanear QR del cliente
         </button>
+        <div id="panel-escaner" hidden style="margin-top:16px">
+          <p class="small muted">El QR identifica el número del cliente. Nunca registra sellos ni autoriza canjes por sí solo.</p>
+          <video id="video-qr" playsinline muted autoplay
+                 style="display:block;width:100%;max-height:320px;background:#111;margin:12px 0"></video>
+          <p id="estado-escaner" role="status" class="mensaje"></p>
+          <button id="cerrar-escaner" type="button" class="btn btn--secondary ancho">Cerrar cámara</button>
+        </div>
       </div>
 
       <section class="tarjeta" style="margin-top:24px">
         <h2>Últimos movimientos</h2>
 
-        <p class="muted small" style="margin:12px 0">
-          Tus últimos 10 movimientos.
-          Puedes corregir compras recientes.
-        </p>
+        <div class="historial-controles">
+          <button id="actualizar-movimientos" type="button"
+                  title="Actualizar historial" aria-label="Actualizar historial">
+            ↻ Actualizar
+          </button>
 
-        <button id="actualizar-movimientos"
-                class="btn btn--secondary"
-                type="button">
-          Actualizar historial
-        </button>
+          <nav id="paginacion-personal" class="historial-paginacion"
+               aria-label="Páginas del historial">
+            <button id="movimientos-anterior" type="button" disabled>← Anterior</button>
+            <span id="movimientos-pagina" aria-live="polite">Página 1</span>
+            <button id="movimientos-siguiente" type="button" disabled>Siguiente →</button>
+          </nav>
+        </div>
 
         <p id="estado-movimientos"
           class="mensaje"
@@ -278,18 +365,7 @@
       </section>
 
 
-      <section id="zona-admin"
-               class="administracion" hidden>
-        <h2>Administración</h2>
-        <p class="small">
-            Gestiona la información del negocio
-            y las cuentas del personal.
-        </p>
-        <a class="btn btn--secondary"
-            href="/administracion">
-            Abrir administración
-        </a>
-      </section>
+
     </section>
   </main>
 

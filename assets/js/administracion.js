@@ -180,6 +180,7 @@ function prepararReset(empleado) {
 
   $("form-reset").reset();
   $("zona-reset").hidden = false;
+  $("zona-reset").scrollIntoView({ behavior: "smooth", block: "start" });
   $("clave-reset").focus();
 }
 

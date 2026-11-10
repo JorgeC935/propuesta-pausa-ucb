@@ -44,8 +44,9 @@ export async function onRequestGet({ request, env }) {
       return responder({ error: "Pagina invalida" }, 400);
     }
 
-    const limite = admin ? 30 : 10;
-    const desplazamiento = admin ? (pagina - 1) * limite : 0;
+    // Paginacion real en servidor para ambos roles.
+    const limite = 10;
+    const desplazamiento = (pagina - 1) * limite;
 
     const condiciones = [
       "m.tipo IN ('compra', 'canje')"
@@ -137,8 +138,8 @@ export async function onRequestGet({ request, env }) {
 
     return responder({
       movimientos: registros.slice(0, limite),
-      pagina: admin ? pagina : 1,
-      tiene_mas: admin && registros.length > limite
+      pagina,
+      tiene_mas: registros.length > limite
     });
 
   } catch (error) {

@@ -37,10 +37,16 @@ async function obtenerSaldo(db, telefono) {
       ), 10) AS meta_sellos
   `).bind(telefono).first();
 
+  // El QR es un identificador opaco, no un dato de autenticacion.
+  // No generamos QR antes de que exista el cliente en D1.
+  const cliente = await db.prepare(`
+    SELECT qr_id FROM clientes WHERE telefono = ?
+  `).bind(telefono).first();
   const meta = Number(datos?.meta_sellos);
   return {
     saldo: Math.max(0, Number(datos?.saldo ?? 0)),
-    meta_sellos: Number.isInteger(meta) && meta >= 1 && meta <= 100 ? meta : 10
+    meta_sellos: Number.isInteger(meta) && meta >= 1 && meta <= 100 ? meta : 10,
+    qr_id: cliente?.qr_id ?? null
   };
 }
 

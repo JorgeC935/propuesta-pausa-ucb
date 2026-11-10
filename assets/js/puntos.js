@@ -6,6 +6,36 @@
   var C = window.PAUSA, UI = window.PAUSA_UI;
   var panel = document.getElementById("panel");
   var KEY = "pausa_numero";
+  var QR_KEY = "pausa_qr_local";
+  var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function guardarQr(numero, id) {
+    if (!UUID.test(String(id || ""))) return;
+    try { localStorage.setItem(QR_KEY, JSON.stringify({ telefono: numero, id: id })); } catch (e) {}
+  }
+  function recuperarQr(numero) {
+    try {
+      var valor = JSON.parse(localStorage.getItem(QR_KEY));
+      return valor && valor.telefono === numero && UUID.test(valor.id) ? valor.id : null;
+    } catch (e) { return null; }
+  }
+  function mostrarQr(numero, id, offline) {
+    if (!UUID.test(String(id || "")) || typeof qrcode !== "function") return;
+    var seccion = el("section", "pausa-qr");
+    var titulo = el("h2", null, "Mi QR de Pausa");
+    var ayuda = el("p", "muted small", offline
+      ? "Tu QR guardado funciona sin internet. El saldo necesita conexion."
+      : "Muestra este QR al personal. No hace falta internet para mostrarlo despues de guardarlo.");
+    var imagen = el("div", "pausa-qr__imagen");
+    try {
+      var codigo = qrcode(0, "M");
+      codigo.addData("PAUSA-V2:" + id);
+      codigo.make();
+      imagen.innerHTML = codigo.createSvgTag({ cellSize: 7, margin: 4, scalable: true });
+    } catch (e) { return; }
+    var nota = el("p", "hint", "Este QR identifica tu cuenta de sellos, pero no autoriza compras ni canjes. Puedes guardar una captura.");
+    seccion.append(titulo, ayuda, imagen, nota);
+    panel.appendChild(seccion);
+  }
   var consultaActual = 0;
   var controlador = null;
 
@@ -18,7 +48,7 @@
   function masked(n) { return "•••• " + n.slice(-4); }
   function load() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
   function save(n) { try { localStorage.setItem(KEY, n); } catch (e) {} }
-  function forget() { try { localStorage.removeItem(KEY); } catch (e) {} }
+  function forget() { try { localStorage.removeItem(KEY); localStorage.removeItem(QR_KEY); } catch (e) {} }
 
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function check() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'; }
@@ -83,6 +113,13 @@
     if (n >= meta) panel.appendChild(el("p", null, "Ya tienes sellos suficientes para una recompensa. Solicita el canje al personal de Pausa."));
     else if (n === 0) panel.appendChild(el("p", "muted", "Todavía no tienes sellos digitales. El personal registra tus sellos al confirmar la compra."));
     else panel.appendChild(el("p", "muted", "Te faltan " + (meta - n) + " sellos para la próxima recompensa."));
+
+    if (UUID.test(String(data.qr_id || ""))) {
+      guardarQr(numero, data.qr_id);
+      mostrarQr(numero, data.qr_id, false);
+    } else {
+      panel.appendChild(el("p", "muted small", "Tu QR aparecera aqui despues de que se registre tu primera compra."));
+    }
   }
 
   function showNotFound(numero) {
@@ -101,6 +138,8 @@
     panel.appendChild(el("h1", null, "Mis puntos"));
     panel.appendChild(whoLine(numero));
     panel.appendChild(el("p", "muted", detalle || "No pudimos cargar tus sellos ahora. Revisa tu conexión e inténtalo nuevamente."));
+    // Solo mostrar el QR guardado, nunca un saldo viejo como saldo actual.
+    mostrarQr(numero, recuperarQr(numero), true);
     var volver = el("button", "btn btn--secondary", "Volver a consultar");
     volver.type = "button";
     volver.addEventListener("click", function () { lookup(numero); });

@@ -139,13 +139,18 @@
         Volver al panel del personal
       </a>
       <h1>Administración</h1>
+      <nav aria-label="Secciones de administración" class="acciones" style="margin-top:16px">
+        <a href="#ajustes-negocio">WhatsApp</a>
+        <a href="#usuarios-personal">Empleados</a>
+        <a href="#historial-negocio">Historial</a>
+      </nav>
     </header>
 
     <p id="cargando">Comprobando permisos...</p>
     <p id="mensaje" role="status" aria-live="polite"></p>
 
     <div id="contenido" hidden>
-      <section class="panel">
+      <section class="panel" id="ajustes-negocio">
         <h2>WhatsApp del negocio</h2>
 
         <form id="form-whatsapp" class="formulario">
@@ -162,7 +167,7 @@
         </form>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="usuarios-personal">
         <h2>Crear empleado</h2>
 
         <form id="form-crear" class="formulario">
@@ -212,8 +217,49 @@
         <div id="lista-empleados"></div>
       </section>
       
-      <section class="panel">
+      <section id="zona-reset" class="panel" hidden>
+        <h2>Restablecer contraseña</h2>
+        <p id="destinatario-reset"></p>
+
+        <form id="form-reset" class="formulario">
+          <div>
+            <label for="clave-reset">
+              Nueva contraseña
+            </label>
+            <input id="clave-reset"
+                   type="password"
+                   minlength="12"
+                   maxlength="128"
+                   autocomplete="new-password"
+                   required>
+          </div>
+
+          <div>
+            <label for="confirmar-reset">
+              Confirmar nueva contraseña
+            </label>
+            <input id="confirmar-reset"
+                   type="password"
+                   minlength="12"
+                   maxlength="128"
+                   autocomplete="new-password"
+                   required>
+          </div>
+
+          <button type="submit" class="accion">
+            Guardar nueva contraseña
+          </button>
+
+          <button id="cancelar-reset" type="button"
+                  class="accion secundaria">
+            Cancelar
+          </button>
+        </form>
+      </section>
+
+      <section class="panel" id="historial-negocio">
         <h2>Historial de movimientos</h2>
+        <p class="small" style="margin:0 0 16px">10 movimientos por página, con filtros para localizar anteriores.</p>
 
         <div class="formulario">
           <div>
@@ -261,57 +307,19 @@
 
         <div class="acciones" style="margin-top:16px">
           <button id="pagina-anterior" type="button">
-            Anterior
+            ← Anterior
           </button>
 
           <span id="pagina-actual">Página 1</span>
 
           <button id="pagina-siguiente" type="button">
-            Siguiente
+            Siguiente →
           </button>
         </div>
       </section>
 
 
-      <section id="zona-reset" class="panel" hidden>
-        <h2>Restablecer contraseña</h2>
-        <p id="destinatario-reset"></p>
 
-        <form id="form-reset" class="formulario">
-          <div>
-            <label for="clave-reset">
-              Nueva contraseña
-            </label>
-            <input id="clave-reset"
-                   type="password"
-                   minlength="12"
-                   maxlength="128"
-                   autocomplete="new-password"
-                   required>
-          </div>
-
-          <div>
-            <label for="confirmar-reset">
-              Confirmar nueva contraseña
-            </label>
-            <input id="confirmar-reset"
-                   type="password"
-                   minlength="12"
-                   maxlength="128"
-                   autocomplete="new-password"
-                   required>
-          </div>
-
-          <button type="submit" class="accion">
-            Guardar nueva contraseña
-          </button>
-
-          <button id="cancelar-reset" type="button"
-                  class="accion secundaria">
-            Cancelar
-          </button>
-        </form>
-      </section>
     </div>
   </main>
   

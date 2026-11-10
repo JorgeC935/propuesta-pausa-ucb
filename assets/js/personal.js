@@ -9,6 +9,13 @@ const CLAVE_CANJE = "pausa_canje_pendiente";
 // Identifica al usuario que tiene abierta la sesion.
 // Los pendientes quedan separados por empleado en este dispositivo.
 let usuarioActual = null;
+let paginaMovimientos = 1;
+let hayMovimientosSiguientes = false;
+let secuenciaMovimientos = 0;
+let lectorActivo = false;
+let flujoCamara = null;
+let animacionLector = null;
+let versionLector = 0;
 
 const PATRON_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -123,6 +130,10 @@ function mostrarPanel(empleado) {
 
   $("zona-admin").hidden =
     empleado.rol !== "administrador";
+  $("titulo-personal").textContent = empleado.rol === "administrador"
+    ? "Panel de administración y personal"
+    : "Panel del personal";
+  paginaMovimientos = 1;
 
   const compra = leerPendiente(CLAVE_COMPRA);
   const canje = leerPendiente(CLAVE_CANJE);
@@ -141,7 +152,12 @@ function mostrarPanel(empleado) {
     consultarSaldo(pendiente.telefono).catch(() => {});
   }
 
-  $("telefono").focus();
+  // El administrador ve y puede abrir la administración antes de registrar compras.
+  if (empleado.rol === "administrador" && !pendiente) {
+    $("abrir-admin").focus();
+  } else {
+    $("telefono").focus();
+  }
 
   cargarMovimientosPersonal();
 }
@@ -371,6 +387,7 @@ $("form-sello").addEventListener("submit", async (evento) => {
     }
 
     // Actualizar el historial despues de registrar la compra.
+    paginaMovimientos = 1;
     void cargarMovimientosPersonal();
     $("telefono").focus();
     $("telefono").select();
@@ -487,6 +504,7 @@ $("boton-canjear").addEventListener("click", async () => {
       meta
     );
     // Refrescar el historial tras un canje confirmado.
+    paginaMovimientos = 1;
     void cargarMovimientosPersonal();
 
   } catch (error) {
@@ -560,6 +578,9 @@ $("cerrar-sesion").addEventListener("click", async () => {
     $("contrasena").value = "";
     $("telefono").value = "";
     $("resumen-cliente").hidden = true;
+    secuenciaMovimientos++;
+    paginaMovimientos = 1;
+    detenerLector();
     $("lista-movimientos").replaceChildren();
     mensaje("mensaje-sello", "");
     mensaje("mensaje-canje", "");
@@ -586,10 +607,12 @@ async function cargarMovimientosPersonal() {
   const lista = $("lista-movimientos");
   const estado = $("estado-movimientos");
 
+  const peticion = ++secuenciaMovimientos;
   estado.textContent = "Actualizando movimientos...";
 
   try {
-    const datos = await api("/api/movimientos");
+    const datos = await api("/api/movimientos?pagina=" + paginaMovimientos);
+    if (peticion !== secuenciaMovimientos || !usuarioActual) return;
     lista.replaceChildren();
 
     for (const movimiento of datos.movimientos) {
@@ -645,12 +668,17 @@ async function cargarMovimientosPersonal() {
       lista.append(fila);
     }
 
+    hayMovimientosSiguientes = Boolean(datos.tiene_mas);
+    $("movimientos-anterior").disabled = paginaMovimientos === 1;
+    $("movimientos-siguiente").disabled = !hayMovimientosSiguientes;
+    $("movimientos-pagina").textContent = `Página ${paginaMovimientos}`;
+
     estado.textContent = datos.movimientos.length
       ? ""
-      : "Todavía no tienes movimientos registrados.";
+      : "No hay movimientos en esta página.";
 
   } catch (error) {
-    estado.textContent = error.message;
+    if (peticion === secuenciaMovimientos) estado.textContent = error.message;
   }
 }
 
@@ -663,6 +691,7 @@ async function corregirMovimientoPersonal(movimiento, tipo) {
 
     if (!resultado) return;
 
+    paginaMovimientos = 1;
     await cargarMovimientosPersonal();
 
     // Mostrar el resultado DESPUES de recargar la lista,
@@ -693,7 +722,116 @@ async function corregirMovimientoPersonal(movimiento, tipo) {
   }
 }
 
-$("actualizar-movimientos").addEventListener(
-  "click",
-  cargarMovimientosPersonal
-);
+$("actualizar-movimientos").addEventListener("click", () => {
+  paginaMovimientos = 1;
+  cargarMovimientosPersonal();
+});
+$("movimientos-anterior").addEventListener("click", () => {
+  if (paginaMovimientos <= 1) return;
+  paginaMovimientos--;
+  cargarMovimientosPersonal();
+});
+$("movimientos-siguiente").addEventListener("click", () => {
+  if (!hayMovimientosSiguientes) return;
+  paginaMovimientos++;
+  cargarMovimientosPersonal();
+});
+
+
+// Lector QR: identifica al cliente, pero NO agrega sellos ni canjea premios.
+function detenerLector() {
+  versionLector++;
+  lectorActivo = false;
+  if (animacionLector !== null) cancelAnimationFrame(animacionLector);
+  animacionLector = null;
+  if (flujoCamara) {
+    flujoCamara.getTracks().forEach(track => track.stop());
+    flujoCamara = null;
+  }
+  $("video-qr").srcObject = null;
+  $("panel-escaner").hidden = true;
+}
+
+$("escanear-qr").addEventListener("click", async () => {
+  if (lectorActivo) return;
+  const intentoLector = ++versionLector;
+  const panel = $("panel-escaner");
+  const estado = $("estado-escaner");
+  panel.hidden = false;
+  estado.textContent = "Preparando cámara...";
+
+  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+    estado.textContent = "Este navegador no admite el lector QR. Introduce el celular manualmente.";
+    return;
+  }
+
+  try {
+    const soportados = await BarcodeDetector.getSupportedFormats();
+    if (!soportados.includes("qr_code")) {
+      estado.textContent = "El lector de QR no está disponible en este navegador. Usa el celular manualmente.";
+      return;
+    }
+    const lector = new BarcodeDetector({ formats: ["qr_code"] });
+    const nuevaCamara = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: "environment" } }
+    });
+    if (intentoLector !== versionLector) {
+      nuevaCamara.getTracks().forEach(track => track.stop());
+      return;
+    }
+    flujoCamara = nuevaCamara;
+    const video = $("video-qr");
+    video.srcObject = flujoCamara;
+    await video.play();
+    if (intentoLector !== versionLector) {
+      detenerLector();
+      return;
+    }
+    lectorActivo = true;
+    estado.textContent = "Enfoca el QR de Pausa con la cámara.";
+    let ultimaLectura = 0;
+    const escanear = async tiempo => {
+      if (!lectorActivo) return;
+      if (tiempo - ultimaLectura < 250) {
+        animacionLector = requestAnimationFrame(escanear);
+        return;
+      }
+      ultimaLectura = tiempo;
+      try {
+        const resultados = await lector.detect(video);
+        if (!lectorActivo) return;
+        for (const resultado of resultados) {
+          const match = /^PAUSA-V2:([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/i.exec(resultado.rawValue || "");
+          if (!match) continue;
+          // detener ANTES de resolver la API para evitar lecturas repetidas
+          detenerLector();
+          mensaje("mensaje-sello", "Identificando QR...");
+          try {
+            const datos = await api("/api/clientes/qr?codigo=" + encodeURIComponent(match[1]));
+            $("telefono").value = datos.telefono;
+            $("resumen-cliente").hidden = true;
+            await consultarSaldo(datos.telefono);
+            mensaje("mensaje-sello", "QR reconocido. Verifica el cliente antes de registrar o canjear.");
+          } catch (error) {
+            mensaje("mensaje-sello", error.message, true);
+          }
+          return;
+        }
+      } catch (error) {
+        if (lectorActivo) estado.textContent = "No se pudo leer el QR. Intenta con mejor iluminación.";
+      }
+      if (lectorActivo) animacionLector = requestAnimationFrame(escanear);
+    };
+    animacionLector = requestAnimationFrame(escanear);
+  } catch (error) {
+    if (intentoLector !== versionLector) return;
+    detenerLector();
+    panel.hidden = false;
+    estado.textContent = "No se pudo abrir la cámara. Comprueba los permisos o usa el celular manualmente.";
+  }
+});
+$("cerrar-escaner").addEventListener("click", detenerLector);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) detenerLector();
+});
