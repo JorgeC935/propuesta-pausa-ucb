@@ -107,6 +107,8 @@ function mostrarPanel(empleado) {
   }
 
   $("telefono").focus();
+
+  cargarMovimientosPersonal();
 }
 
 async function consultarSaldo(telefono) {
@@ -515,3 +517,127 @@ $("cerrar-sesion").addEventListener("click", async () => {
 });
 
 iniciar();
+
+function crearBotonMovimiento(texto, accion) {
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = "btn btn--secondary";
+  boton.textContent = texto;
+  boton.style.margin = "6px 8px 0 0";
+  boton.addEventListener("click", accion);
+  return boton;
+}
+
+async function cargarMovimientosPersonal() {
+  const lista = $("lista-movimientos");
+  const estado = $("estado-movimientos");
+
+  estado.textContent = "Actualizando movimientos...";
+
+  try {
+    const datos = await api("/api/movimientos");
+    lista.replaceChildren();
+
+    for (const movimiento of datos.movimientos) {
+      const fila = document.createElement("div");
+      fila.style.padding = "16px 0";
+      fila.style.borderBottom = "1px solid #ddd";
+
+      const titulo = document.createElement("strong");
+      titulo.textContent =
+        `${movimiento.telefono} · ` +
+        (movimiento.tipo === "compra"
+          ? "+1 sello"
+          : `${movimiento.sellos} sellos (canje)`);
+
+      const detalle = document.createElement("p");
+      detalle.className = "small muted";
+      detalle.style.marginTop = "6px";
+
+      detalle.textContent = new Date(
+        movimiento.creado_en * 1000
+      ).toLocaleString("es-BO");
+
+      fila.append(titulo, detalle);
+
+      if (movimiento.correccion_tipo) {
+        const corregido = document.createElement("p");
+        corregido.className = "small";
+        corregido.style.marginTop = "8px";
+        corregido.textContent =
+          movimiento.correccion_tipo === "trasladar"
+            ? `Corregido: trasladado a ` +
+              movimiento.telefono_destino
+            : "Registro anulado";
+
+        fila.append(corregido);
+      } else if (movimiento.puede_corregir === 1) {
+        fila.append(
+          crearBotonMovimiento(
+            "Corregir número",
+            () => corregirMovimientoPersonal(
+              movimiento, "trasladar"
+            )
+          ),
+          crearBotonMovimiento(
+            "Anular sello",
+            () => corregirMovimientoPersonal(
+              movimiento, "anular"
+            )
+          )
+        );
+      }
+
+      lista.append(fila);
+    }
+
+    estado.textContent = datos.movimientos.length
+      ? ""
+      : "Todavía no tienes movimientos registrados.";
+
+  } catch (error) {
+    estado.textContent = error.message;
+  }
+}
+
+async function corregirMovimientoPersonal(movimiento, tipo) {
+  try {
+    const resultado = await window.PausaCorregir(
+      movimiento,
+      tipo
+    );
+
+    if (!resultado) return;
+
+    mensaje(
+      "estado-movimientos",
+      resultado.repetido
+        ? "Esta corrección ya estaba registrada."
+        : "Corrección realizada correctamente."
+    );
+
+    await cargarMovimientosPersonal();
+
+    const telefono = obtenerTelefono();
+
+    if (
+      telefono === movimiento.telefono ||
+      telefono === resultado.telefono_destino
+    ) {
+      await consultarSaldo(telefono);
+    }
+
+  } catch (error) {
+    mensaje(
+      "estado-movimientos",
+      error.message +
+      " Actualiza el historial para comprobar el estado.",
+      true
+    );
+  }
+}
+
+$("actualizar-movimientos").addEventListener(
+  "click",
+  cargarMovimientosPersonal
+);

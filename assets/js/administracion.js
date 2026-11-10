@@ -229,3 +229,152 @@ cargar().catch((error) => {
 
   mensaje(error.message);
 });
+
+
+let paginaHistorial = 1;
+let hayPaginaSiguiente = false;
+
+async function cargarHistorialAdmin() {
+  const estado = $("estado-historial");
+  const lista = $("historial-admin");
+
+  estado.textContent = "Consultando historial...";
+
+  const parametros = new URLSearchParams({
+    pagina: String(paginaHistorial),
+    telefono: $("filtro-telefono").value.trim(),
+    usuario: $("filtro-usuario").value.trim(),
+    estado: $("filtro-estado").value
+  });
+
+  try {
+    const respuesta = await fetch(
+      "/api/movimientos?" + parametros.toString(),
+      {
+        credentials: "same-origin",
+        cache: "no-store"
+      }
+    );
+
+    const datos = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(datos.error || "Error consultando historial");
+    }
+
+    lista.replaceChildren();
+
+    for (const movimiento of datos.movimientos) {
+      const fila = document.createElement("div");
+      fila.className = "empleado";
+
+      const informacion = document.createElement("div");
+
+      const titulo = document.createElement("strong");
+      titulo.textContent =
+        `${movimiento.telefono} · ` +
+        `${movimiento.tipo} (${movimiento.sellos} sellos)`;
+
+      const detalle = document.createElement("small");
+      detalle.textContent =
+        `${movimiento.registrado_por} · ` +
+        new Date(
+          movimiento.creado_en * 1000
+        ).toLocaleString("es-BO");
+
+      informacion.append(titulo, detalle);
+
+      if (movimiento.correccion_tipo) {
+        const correccion = document.createElement("small");
+
+        correccion.textContent =
+          `Corrección: ${movimiento.correccion_tipo}` +
+          (movimiento.telefono_destino
+            ? ` hacia ${movimiento.telefono_destino}`
+            : "") +
+          ` · Por ${movimiento.corregido_por}` +
+          ` · Motivo: ${movimiento.motivo}`;
+
+        informacion.append(correccion);
+      }
+
+      fila.append(informacion);
+
+      if (movimiento.puede_corregir === 1) {
+        const acciones = document.createElement("div");
+        acciones.className = "acciones";
+
+        acciones.append(
+          boton("Corregir", () =>
+            corregirDesdeAdmin(movimiento, "trasladar")
+          ),
+          boton("Anular", () =>
+            corregirDesdeAdmin(movimiento, "anular")
+          )
+        );
+
+        fila.append(acciones);
+      }
+
+      lista.append(fila);
+    }
+
+    hayPaginaSiguiente = datos.tiene_mas;
+    $("pagina-actual").textContent =
+      `Página ${paginaHistorial}`;
+
+    $("pagina-anterior").disabled = paginaHistorial === 1;
+    $("pagina-siguiente").disabled = !hayPaginaSiguiente;
+
+    estado.textContent = datos.movimientos.length
+      ? ""
+      : "No se encontraron movimientos.";
+
+  } catch (error) {
+    estado.textContent = error.message;
+  }
+}
+
+async function corregirDesdeAdmin(movimiento, tipo) {
+  try {
+    const resultado = await window.PausaCorregir(
+      movimiento,
+      tipo
+    );
+
+    if (!resultado) return;
+
+    await cargarHistorialAdmin();
+
+    $("estado-historial").textContent =
+      resultado.repetido
+        ? "Corrección ya registrada."
+        : "Corrección realizada correctamente.";
+
+  } catch (error) {
+    $("estado-historial").textContent =
+      error.message +
+      " Actualiza el historial para verificar el resultado.";
+  }
+}
+
+$("buscar-movimientos").addEventListener("click", () => {
+  paginaHistorial = 1;
+  cargarHistorialAdmin();
+});
+
+$("pagina-anterior").addEventListener("click", () => {
+  if (paginaHistorial > 1) {
+    paginaHistorial--;
+    cargarHistorialAdmin();
+  }
+});
+
+$("pagina-siguiente").addEventListener("click", () => {
+  if (hayPaginaSiguiente) {
+    paginaHistorial++;
+    cargarHistorialAdmin();
+  }
+});
+
+cargarHistorialAdmin();

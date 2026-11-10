@@ -256,6 +256,28 @@
         </button>
       </div>
 
+      <section class="tarjeta" style="margin-top:24px">
+        <h2>Últimos movimientos</h2>
+
+        <p class="muted small" style="margin:12px 0">
+          Tus últimos 10 movimientos.
+          Puedes corregir compras recientes.
+        </p>
+
+        <button id="actualizar-movimientos"
+                class="btn btn--secondary"
+                type="button">
+          Actualizar historial
+        </button>
+
+        <p id="estado-movimientos"
+          class="mensaje"
+          role="status"></p>
+
+        <div id="lista-movimientos"></div>
+      </section>
+
+
       <section id="zona-admin"
                class="administracion" hidden>
         <h2>Administración</h2>
@@ -271,6 +293,7 @@
     </section>
   </main>
 
+  <script src="/assets/js/correcciones-ui.js" defer></script>
   <script src="/assets/js/personal.js" defer></script>
 </body>
 </html>
