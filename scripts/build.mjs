@@ -9,6 +9,7 @@ const destino = join(raiz, "dist");
 const archivos = [
   "index.html",
   "puntos.html",
+  "personal.html",
   "qr.html",
   "manifest.webmanifest",
   "sw.js",
