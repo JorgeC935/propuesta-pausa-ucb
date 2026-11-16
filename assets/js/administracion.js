@@ -8,6 +8,34 @@ function mensaje(texto) {
   $("mensaje").textContent = texto;
 }
 
+function estadoSeccion(id, texto, error = false) {
+  const nodo = $(id);
+  nodo.textContent = texto;
+  nodo.className = "estado-seccion " + (error ? "error" : "ok");
+}
+function errorCampo(id, texto) {
+  const nodo = $("error-" + id);
+  nodo.textContent = texto;
+  nodo.hidden = false;
+  const input = $(id);
+  input.setAttribute("aria-invalid", "true");
+  input.focus({ preventScroll: true });
+  nodo.scrollIntoView({ block: "nearest" });
+  return false;
+}
+function limpiarErrorCampo(id) {
+  const nodo = $("error-" + id);
+  nodo.textContent = "";
+  nodo.hidden = true;
+  $(id).removeAttribute("aria-invalid");
+}
+for (const id of [
+  "whatsapp", "nuevo-usuario", "nueva-clave", "confirmar-clave",
+  "clave-reset", "confirmar-reset", "filtro-telefono", "filtro-usuario"
+]) {
+  $(id).addEventListener("input", () => limpiarErrorCampo(id));
+}
+
 async function consultar(metodo = "GET", cuerpo = null) {
   const respuesta = await fetch("/api/admin", {
     method: metodo,
@@ -101,16 +129,25 @@ async function cargar() {
   $("contenido").hidden = false;
 }
 
-async function ejecutar(accion) {
-  mensaje("Procesando...");
-
+async function ejecutar(accion, idEstado = "mensaje", campoConError = null) {
+  if (idEstado === "mensaje") mensaje("Procesando...");
+  else estadoSeccion(idEstado, "Procesando...");
   try {
     const resultado = await accion();
-    mensaje(resultado.mensaje || "Operacion completada");
     await cargar();
+    if (idEstado === "mensaje") mensaje(resultado.mensaje || "Operación completada");
+    else estadoSeccion(idEstado, resultado.mensaje || "Operación completada");
     return true;
   } catch (error) {
-    mensaje(error.message);
+    if (campoConError) errorCampo(campoConError, error.message);
+    else if (idEstado === "estado-crear" && /usuario ya existe|usuario invalido/i.test(error.message)) {
+      errorCampo("nuevo-usuario", error.message);
+    } else if (idEstado === "estado-crear" && /contraseñ|contrasen/i.test(error.message)) {
+      errorCampo("nueva-clave", error.message);
+    } else if (idEstado === "estado-reset" && /contraseñ|contrasen/i.test(error.message)) {
+      errorCampo("clave-reset", error.message);
+    } else if (idEstado === "mensaje") mensaje(error.message);
+    else estadoSeccion(idEstado, error.message, true);
     return false;
   }
 }
@@ -123,24 +160,31 @@ $("form-whatsapp").addEventListener("submit", async (evento) => {
     'button[type="submit"]'
   );
 
+  limpiarErrorCampo("whatsapp");
+  const whatsapp = $("whatsapp").value.trim().replace(/[\s()-]/g, "");
+  if (whatsapp && !/^(?:[67][0-9]{7}|\+?[1-9][0-9]{8,14})$/.test(whatsapp)) {
+    return errorCampo("whatsapp", "Introduce un número de WhatsApp válido.");
+  }
   botonGuardar.disabled = true;
-
   await ejecutar(() => consultar("POST", {
-    accion: "guardar_whatsapp",
-    numero: $("whatsapp").value
-  }));
-
+    accion: "guardar_whatsapp", numero: $("whatsapp").value
+  }), "estado-whatsapp", "whatsapp");
   botonGuardar.disabled = false;
 });
 
 $("form-crear").addEventListener("submit", async (evento) => {
   evento.preventDefault();
 
+  const usuario = $("nuevo-usuario").value.trim().toLowerCase();
   const clave = $("nueva-clave").value;
-
+  if (!/^[a-z0-9._-]{3,32}$/.test(usuario)) {
+    return errorCampo("nuevo-usuario", "Usa entre 3 y 32 caracteres: letras, números, punto, guion o guion bajo.");
+  }
+  if (clave.length < 12 || clave.length > 128) {
+    return errorCampo("nueva-clave", "La contraseña debe tener entre 12 y 128 caracteres.");
+  }
   if (clave !== $("confirmar-clave").value) {
-    mensaje("Las contraseñas no coinciden");
-    return;
+    return errorCampo("confirmar-clave", "Las contraseñas no coinciden.");
   }
 
   const botonGuardar = evento.currentTarget.querySelector(
@@ -150,10 +194,8 @@ $("form-crear").addEventListener("submit", async (evento) => {
   botonGuardar.disabled = true;
 
   const correcto = await ejecutar(() => consultar("POST", {
-    accion: "crear_empleado",
-    usuario: $("nuevo-usuario").value,
-    contrasena: clave
-  }));
+    accion: "crear_empleado", usuario, contrasena: clave
+  }), "estado-crear");
 
   if (correcto) {
     evento.currentTarget.reset();
@@ -186,6 +228,9 @@ function prepararReset(empleado) {
     `Empleado: ${empleado.usuario}`;
 
   $("form-reset").reset();
+  limpiarErrorCampo("clave-reset");
+  limpiarErrorCampo("confirmar-reset");
+  estadoSeccion("estado-reset", "");
   $("zona-reset").hidden = false;
   $("zona-reset").scrollIntoView({ behavior: "smooth", block: "start" });
   $("clave-reset").focus();
@@ -203,10 +248,11 @@ $("form-reset").addEventListener("submit", async (evento) => {
   if (!empleadoParaReset) return;
 
   const clave = $("clave-reset").value;
-
+  if (clave.length < 12 || clave.length > 128) {
+    return errorCampo("clave-reset", "La nueva contraseña debe tener entre 12 y 128 caracteres.");
+  }
   if (clave !== $("confirmar-reset").value) {
-    mensaje("Las contraseñas no coinciden");
-    return;
+    return errorCampo("confirmar-reset", "Las contraseñas no coinciden.");
   }
 
   const botonGuardar = evento.currentTarget.querySelector(
@@ -216,10 +262,8 @@ $("form-reset").addEventListener("submit", async (evento) => {
   botonGuardar.disabled = true;
 
   const correcto = await ejecutar(() => consultar("POST", {
-    accion: "restablecer_clave",
-    id: empleadoParaReset.id,
-    contrasena: clave
-  }));
+    accion: "restablecer_clave", id: empleadoParaReset.id, contrasena: clave
+  }), "estado-reset");
 
   if (correcto) {
     empleadoParaReset = null;
@@ -243,6 +287,16 @@ let paginaHistorial = 1;
 let hayPaginaSiguiente = false;
 
 async function cargarHistorialAdmin() {
+  const telefonoFiltro = $("filtro-telefono").value.trim();
+  const usuarioFiltro = $("filtro-usuario").value.trim().toLowerCase();
+  limpiarErrorCampo("filtro-telefono");
+  limpiarErrorCampo("filtro-usuario");
+  if (telefonoFiltro && !/^[0-9]{8}$/.test(telefonoFiltro)) {
+    return errorCampo("filtro-telefono", "Introduce ocho dígitos o deja el campo vacío.");
+  }
+  if (usuarioFiltro && !/^[a-z0-9._-]{3,32}$/.test(usuarioFiltro)) {
+    return errorCampo("filtro-usuario", "Escribe un usuario válido o deja el campo vacío.");
+  }
   const estado = $("estado-historial");
   const lista = $("historial-admin");
 
@@ -250,8 +304,8 @@ async function cargarHistorialAdmin() {
 
   const parametros = new URLSearchParams({
     pagina: String(paginaHistorial),
-    telefono: $("filtro-telefono").value.trim(),
-    usuario: $("filtro-usuario").value.trim(),
+    telefono: telefonoFiltro,
+    usuario: usuarioFiltro,
     estado: $("filtro-estado").value
   });
 
@@ -406,8 +460,7 @@ for (const [horas, botonId] of [
         : `¿Habilitar la carga masiva para empleados por ${horas} horas?`;
     if (!confirm(texto)) return;
     await ejecutar(() => consultar("POST", {
-      accion: "configurar_carga_masiva",
-      horas
-    }));
+      accion: "configurar_carga_masiva", horas
+    }), "estado-permiso-accion");
   });
 }

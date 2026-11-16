@@ -88,6 +88,12 @@
     .mensaje.error {
       color: var(--closed);
     }
+    .error-campo {
+      margin-top:5px; font-size:.83rem; font-weight:650;
+      line-height:1.4; color:#9c1c20;
+    }
+    .error-campo[hidden] { display:none !important; }
+    .campo input[aria-invalid="true"] { border-color:#9c1c20; outline:1px solid #9c1c20; }
 
     .mensaje.exito {
       color: var(--ok);
@@ -274,9 +280,6 @@
       <section id="zona-carga-masiva" class="administracion"
                style="margin:0 0 20px" hidden>
         <h2>Carga masiva de sellos</h2>
-        <p class="small" style="margin:0 0 12px">
-          Prepara los cambios de varios clientes en una sola operación.
-        </p>
         <a class="btn btn--secondary" href="/carga-masiva">
           Abrir carga masiva
         </a>
@@ -284,11 +287,8 @@
 
       <div class="tarjeta">
         <h2>Registrar sello</h2>
-        <p class="muted small" style="margin: 12px 0 24px">
-          Registra una compra pagada.
-        </p>
 
-        <form id="form-sello" class="formulario">
+        <form id="form-sello" class="formulario" novalidate>
           <div class="campo">
             <label for="telefono">
               Número de celular del cliente
@@ -303,7 +303,9 @@
               maxlength="8"
               pattern="[0-9]{8}"
               placeholder="Ej. 71234567"
+              aria-describedby="error-telefono"
               required>
+            <p id="error-telefono" class="error-campo" role="alert" hidden></p>
           </div>
 
           <button class="btn btn--primary"

@@ -29,10 +29,25 @@
     }
 
     .volver {
-      display: inline-block;
-      margin-bottom: 24px;
-      color: inherit;
+      display:inline-flex; align-items:center; justify-content:center;
+      min-height:44px; padding:9px 14px; margin-bottom:24px;
+      border:1px solid #222; background:transparent; color:#222;
+      text-decoration:none; text-align:center;
+      font-size:.82rem; font-weight:750; line-height:1.3;
+      transition:background-color .15s, color .15s;
     }
+    .volver:hover { background:#222; color:white; }
+    .volver:focus-visible { outline:3px solid #222; outline-offset:3px; }
+    .error-campo {
+      margin:7px 0 0; font-size:.83rem; font-weight:650;
+      line-height:1.4; color:#9c1c20;
+    }
+    .error-campo[hidden] { display:none !important; }
+    input[aria-invalid="true"] { border-color:#9c1c20; outline:1px solid #9c1c20; }
+    .estado-seccion { font-size:.88rem; font-weight:650; margin:10px 0 0; overflow-wrap:anywhere; }
+    .estado-seccion:empty { display:none; }
+    .estado-seccion.error { color:#9c1c20; }
+    .estado-seccion.ok { color:#235e3a; }
 
     .panel {
       padding: 24px;
@@ -136,7 +151,7 @@
       <img src="/assets/img/logo-negro-360.webp"
            alt="Pausa Coffee Express">
       <a class="volver" href="/personal">
-        Volver al panel del personal
+        ← Volver al panel
       </a>
       <h1>Administración</h1>
       <nav aria-label="Secciones de administración" class="acciones" style="margin-top:16px">
@@ -157,24 +172,23 @@
         <form id="form-whatsapp" class="formulario">
           <div>
             <label for="whatsapp">Número de contacto</label>
-            <input id="whatsapp"
-                   type="tel"
-                   placeholder="71234567 o +59171234567">
+            <input id="whatsapp" type="tel"
+                   placeholder="71234567 o +59171234567"
+                   aria-describedby="error-whatsapp">
+            <p id="error-whatsapp" class="error-campo" role="alert" hidden></p>
           </div>
 
           <button type="submit" class="accion">
             Guardar WhatsApp
           </button>
         </form>
+        <p id="estado-whatsapp" class="estado-seccion" role="status"></p>
       </section>
 
       <section class="panel" id="permisos-carga">
         <h2>Carga masiva de sellos</h2>
-        <p class="small" style="margin:0 0 12px">
-          El administrador siempre puede utilizarla. Puedes habilitarla por
-          un tiempo definido o mantenerla activa hasta desactivarla manualmente.
-        </p>
-        <p id="estado-permiso-carga" role="status" style="margin:0 0 16px"></p>
+        <p id="estado-permiso-carga" role="status" style="margin:0 0 12px"></p>
+        <p id="estado-permiso-accion" class="estado-seccion" role="status"></p>
         <div class="acciones" style="margin-bottom:16px">
           <button id="permiso-carga-2" type="button">Habilitar 2 horas</button>
           <button id="permiso-carga-24" type="button">Habilitar 24 horas</button>
@@ -190,46 +204,44 @@
       <section class="panel" id="usuarios-personal">
         <h2>Crear empleado</h2>
 
-        <form id="form-crear" class="formulario">
+        <form id="form-crear" class="formulario" novalidate>
           <div>
             <label for="nuevo-usuario">
               Nombre de usuario
             </label>
             <input id="nuevo-usuario"
-                   autocomplete="off"
-                   minlength="3"
-                   maxlength="32"
-                   required>
+                   autocomplete="off" minlength="3" maxlength="32"
+                   aria-describedby="error-nuevo-usuario" required>
+            <p id="error-nuevo-usuario" class="error-campo" role="alert" hidden></p>
           </div>
 
           <div>
             <label for="nueva-clave">
               Contraseña (mínimo 12 caracteres)
             </label>
-            <input id="nueva-clave"
-                   type="password"
-                   minlength="12"
-                   maxlength="128"
+            <input id="nueva-clave" type="password"
+                   minlength="12" maxlength="128"
                    autocomplete="new-password"
-                   required>
+                   aria-describedby="error-nueva-clave" required>
+            <p id="error-nueva-clave" class="error-campo" role="alert" hidden></p>
           </div>
 
           <div>
             <label for="confirmar-clave">
               Confirmar contraseña
             </label>
-            <input id="confirmar-clave"
-                   type="password"
-                   minlength="12"
-                   maxlength="128"
+            <input id="confirmar-clave" type="password"
+                   minlength="12" maxlength="128"
                    autocomplete="new-password"
-                   required>
+                   aria-describedby="error-confirmar-clave" required>
+            <p id="error-confirmar-clave" class="error-campo" role="alert" hidden></p>
           </div>
 
           <button type="submit" class="accion">
             Crear empleado
           </button>
         </form>
+        <p id="estado-crear" class="estado-seccion" role="status"></p>
       </section>
 
       <section class="panel">
@@ -241,29 +253,27 @@
         <h2>Restablecer contraseña</h2>
         <p id="destinatario-reset"></p>
 
-        <form id="form-reset" class="formulario">
+        <form id="form-reset" class="formulario" novalidate>
           <div>
             <label for="clave-reset">
               Nueva contraseña
             </label>
-            <input id="clave-reset"
-                   type="password"
-                   minlength="12"
-                   maxlength="128"
+            <input id="clave-reset" type="password"
+                   minlength="12" maxlength="128"
                    autocomplete="new-password"
-                   required>
+                   aria-describedby="error-clave-reset" required>
+            <p id="error-clave-reset" class="error-campo" role="alert" hidden></p>
           </div>
 
           <div>
             <label for="confirmar-reset">
               Confirmar nueva contraseña
             </label>
-            <input id="confirmar-reset"
-                   type="password"
-                   minlength="12"
-                   maxlength="128"
+            <input id="confirmar-reset" type="password"
+                   minlength="12" maxlength="128"
                    autocomplete="new-password"
-                   required>
+                   aria-describedby="error-confirmar-reset" required>
+            <p id="error-confirmar-reset" class="error-campo" role="alert" hidden></p>
           </div>
 
           <button type="submit" class="accion">
@@ -275,11 +285,11 @@
             Cancelar
           </button>
         </form>
+        <p id="estado-reset" class="estado-seccion" role="status"></p>
       </section>
 
       <section class="panel" id="historial-negocio">
         <h2>Historial de movimientos</h2>
-        <p class="small" style="margin:0 0 16px">10 movimientos por página, con filtros para localizar anteriores.</p>
 
         <div class="formulario">
           <div>
@@ -287,17 +297,19 @@
               Filtrar por celular
             </label>
             <input id="filtro-telefono"
-                  inputmode="numeric"
-                  maxlength="8"
-                  placeholder="Todos los clientes">
+                  inputmode="numeric" maxlength="8"
+                  placeholder="Todos los clientes"
+                  aria-describedby="error-filtro-telefono">
+            <p id="error-filtro-telefono" class="error-campo" role="alert" hidden></p>
           </div>
 
           <div>
             <label for="filtro-usuario">
               Filtrar por empleado
             </label>
-            <input id="filtro-usuario"
-                  placeholder="Todos los empleados">
+            <input id="filtro-usuario" placeholder="Todos los empleados"
+                  aria-describedby="error-filtro-usuario">
+            <p id="error-filtro-usuario" class="error-campo" role="alert" hidden></p>
           </div>
 
           <div>

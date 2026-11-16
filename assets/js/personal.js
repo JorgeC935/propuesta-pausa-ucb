@@ -111,6 +111,19 @@ function obtenerTelefono() {
 function telefonoValido(telefono) {
   return /^[0-9]{8}$/.test(telefono);
 }
+function errorTelefono(texto) {
+  const nodo = $("error-telefono");
+  nodo.textContent = texto;
+  nodo.hidden = false;
+  $("telefono").setAttribute("aria-invalid", "true");
+  $("telefono").focus();
+}
+function limpiarErrorTelefono() {
+  $("error-telefono").textContent = "";
+  $("error-telefono").hidden = true;
+  $("telefono").removeAttribute("aria-invalid");
+}
+
 
 function mostrarLogin() {
   usuarioActual = null;
@@ -272,6 +285,7 @@ $("form-login").addEventListener("submit", async (evento) => {
 
 // Ocultar saldos anteriores al cambiar el teléfono.
 $("telefono").addEventListener("input", () => {
+  limpiarErrorTelefono();
   $("resumen-cliente").hidden = true;
   mensaje("mensaje-canje", "");
 });
@@ -281,12 +295,7 @@ $("consultar-saldo").addEventListener("click", async () => {
   const telefono = obtenerTelefono();
 
   if (!telefonoValido(telefono)) {
-    mensaje(
-      "mensaje-sello",
-      "Introduce un número de ocho dígitos.",
-      true
-    );
-    return;
+    return errorTelefono("Introduce un número de ocho dígitos.");
   }
 
   const boton = $("consultar-saldo");
@@ -309,12 +318,7 @@ $("form-sello").addEventListener("submit", async (evento) => {
   const telefono = obtenerTelefono();
 
   if (!telefonoValido(telefono)) {
-    mensaje(
-      "mensaje-sello",
-      "Introduce un número de ocho dígitos.",
-      true
-    );
-    return;
+    return errorTelefono("Introduce un número de ocho dígitos.");
   }
 
   if (hayOperacionContraria(CLAVE_COMPRA)) {
