@@ -1,15 +1,14 @@
 
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "pausa-web-v2-dev",
+  "name": "pausa-coffee-express",
   "compatibility_date": "2026-11-10",
   "pages_build_output_dir": "./dist",
-
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "pausa-v2-dev",
-      "database_id": "617f5e0d-f0d4-4b12-bc01-59606d76bde4",
+      "database_name": "pausa-v2-oficial",
+      "database_id": "2e871488-108b-4b48-81d0-e0500afc3dc3",
       "preview_database_id": "DB"
     }
   ]
