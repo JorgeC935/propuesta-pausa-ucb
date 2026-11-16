@@ -116,6 +116,7 @@ function mostrarLogin() {
   usuarioActual = null;
   $("cargando").hidden = true;
   $("pantalla-panel").hidden = true;
+  $("zona-carga-masiva").hidden = true;
   $("pantalla-login").hidden = false;
 }
 
@@ -125,8 +126,9 @@ function mostrarPanel(empleado) {
   $("pantalla-login").hidden = true;
   $("pantalla-panel").hidden = false;
 
-  $("usuario-actual").textContent =
-    `${empleado.usuario} · ${empleado.rol}`;
+  $("usuario-actual").textContent = empleado.rol === "administrador"
+    ? `${empleado.usuario} · Administrador`
+    : empleado.usuario;
 
   $("zona-admin").hidden =
     empleado.rol !== "administrador";
@@ -160,6 +162,18 @@ function mostrarPanel(empleado) {
   }
 
   cargarMovimientosPersonal();
+
+  // El enlace es solamente presentación. El permiso real se comprueba
+  // nuevamente desde el servidor al consultar y aplicar cada lote.
+  const usuarioAlConsultar = usuarioActual;
+  $("zona-carga-masiva").hidden = true;
+  api("/api/carga-masiva")
+    .then(datos => {
+      if (usuarioActual === usuarioAlConsultar) {
+        $("zona-carga-masiva").hidden = !datos.puede_usar;
+      }
+    })
+    .catch(() => { $("zona-carga-masiva").hidden = true; });
 }
 
 async function consultarSaldo(telefono) {
@@ -625,7 +639,9 @@ async function cargarMovimientosPersonal() {
         `${movimiento.telefono} · ` +
         (movimiento.tipo === "compra"
           ? "+1 sello"
-          : `${movimiento.sellos} sellos (canje)`);
+          : movimiento.tipo === "ajuste"
+            ? `${movimiento.sellos > 0 ? "+" : ""}${movimiento.sellos} sellos (carga masiva)`
+            : `${movimiento.sellos} sellos (canje)`);
 
       const detalle = document.createElement("p");
       detalle.className = "small muted";
@@ -636,6 +652,14 @@ async function cargarMovimientosPersonal() {
       ).toLocaleString("es-BO");
 
       fila.append(titulo, detalle);
+
+      if (movimiento.lote_id) {
+        const lote = document.createElement("p");
+        lote.className = "small muted";
+        lote.textContent = "Lote: " + movimiento.lote_id.slice(0, 8) +
+          " · " + (movimiento.lote_motivo || "Ajuste masivo");
+        fila.append(lote);
+      }
 
       if (movimiento.correccion_tipo) {
         const corregido = document.createElement("p");

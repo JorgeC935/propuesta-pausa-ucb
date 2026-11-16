@@ -72,7 +72,7 @@ export async function onRequestGet({ request, env }) {
     const acceso = await comprobarAcceso(request, env);
     if (acceso.error) return acceso.error;
 
-    const [configuracion, listado] = await Promise.all([
+    const [configuracion, listado, permisoMasivo] = await Promise.all([
       env.DB.prepare(`
         SELECT valor
         FROM configuracion
@@ -83,11 +83,17 @@ export async function onRequestGet({ request, env }) {
         SELECT id, usuario, rol, activo, creado_en
         FROM empleados
         ORDER BY rol ASC, usuario ASC
-      `).all()
+      `).all(),
+
+      env.DB.prepare(`
+        SELECT CAST(valor AS INTEGER) AS hasta
+        FROM configuracion WHERE clave = 'carga_masiva_empleados_hasta'
+      `).first()
     ]);
 
     return responder({
       whatsapp_contacto: configuracion?.valor ?? "",
+      carga_masiva_hasta: Number(permisoMasivo?.hasta || 0),
       empleados: listado.results
     });
   } catch (error) {
@@ -129,6 +135,36 @@ export async function onRequestPost({ request, env }) {
   }
 
   try {
+    if (datos.accion === "configurar_carga_masiva") {
+      // Solo el administrador decide cuándo pueden usarla sus empleados.
+      // -1 = acceso sin vencimiento, 0 = deshabilitado, valores positivos = horas.
+      // La API de carga masiva vuelve a comprobar el permiso al ejecutar cada lote.
+      if (![0, 2, 24, -1].includes(datos.horas)) {
+        return responder({ error: "Duracion invalida" }, 400);
+      }
+      const hasta = datos.horas === -1
+        ? -1
+        : datos.horas === 0
+          ? 0
+          : Math.floor(Date.now() / 1000) + datos.horas * 3600;
+
+      await env.DB.prepare(`
+        INSERT INTO configuracion (clave, valor)
+        VALUES ('carga_masiva_empleados_hasta', ?)
+        ON CONFLICT(clave) DO UPDATE SET
+          valor = excluded.valor, actualizado_en = unixepoch()
+      `).bind(String(hasta)).run();
+
+      return responder({
+        mensaje: datos.horas === 0
+          ? "Carga masiva deshabilitada para empleados"
+          : datos.horas === -1
+            ? "Carga masiva habilitada sin fecha de vencimiento"
+            : "Permiso temporal de carga masiva habilitado",
+        carga_masiva_hasta: hasta
+      });
+    }
+
     if (datos.accion === "guardar_whatsapp") {
       const numero = normalizarWhatsApp(datos.numero);
 

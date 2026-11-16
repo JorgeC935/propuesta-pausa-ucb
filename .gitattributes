@@ -1,0 +1,2 @@
+# Las migraciones con CREATE TRIGGER deben conservar LF en Windows.
+migrations/*.sql text eol=lf

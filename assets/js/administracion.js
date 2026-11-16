@@ -88,6 +88,13 @@ async function cargar() {
   const datos = await consultar();
 
   $("whatsapp").value = datos.whatsapp_contacto;
+  const hasta = Number(datos.carga_masiva_hasta || 0);
+  $("estado-permiso-carga").textContent = hasta === -1
+    ? "Habilitada sin límite de tiempo (hasta que se desactive manualmente)"
+    : hasta > Date.now() / 1000
+      ? "Habilitada para empleados hasta " +
+        new Date(hasta * 1000).toLocaleString("es-BO")
+      : "Deshabilitada para empleados";
   pintarEmpleados(datos.empleados);
 
   $("cargando").hidden = true;
@@ -281,7 +288,11 @@ async function cargarHistorialAdmin() {
         `${movimiento.registrado_por} · ` +
         new Date(
           movimiento.creado_en * 1000
-        ).toLocaleString("es-BO");
+        ).toLocaleString("es-BO") +
+        (movimiento.lote_id
+          ? " · Lote " + movimiento.lote_id.slice(0, 8) +
+            " · " + (movimiento.lote_motivo || "Carga masiva")
+          : "");
 
       informacion.append(titulo, detalle);
 
@@ -379,3 +390,24 @@ $("pagina-siguiente").addEventListener("click", () => {
 });
 
 cargarHistorialAdmin();
+
+// Control de permiso exclusivo del administrador; -1 significa hasta desactivar.
+for (const [horas, botonId] of [
+  [0, "permiso-carga-0"],
+  [2, "permiso-carga-2"],
+  [24, "permiso-carga-24"],
+  [-1, "permiso-carga-indefinida"]
+]) {
+  $(botonId).addEventListener("click", async () => {
+    const texto = horas === 0
+      ? "¿Deshabilitar ahora la carga masiva para empleados?"
+      : horas === -1
+        ? "¿Habilitar sin límite de tiempo? Permanecerá activa para todos los empleados autorizados hasta que la desactives manualmente."
+        : `¿Habilitar la carga masiva para empleados por ${horas} horas?`;
+    if (!confirm(texto)) return;
+    await ejecutar(() => consultar("POST", {
+      accion: "configurar_carga_masiva",
+      horas
+    }));
+  });
+}

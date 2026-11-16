@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Carga masiva | Pausa Coffee Express</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="icon" href="/assets/icons/favicon-48.png">
+  <style>
+    [hidden] { display: none !important; }
+    .pagina { width: min(100% - 28px, 880px); margin: 30px auto 64px; }
+    .cab { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+    .cab img { width:118px; display:block; }
+    .cab a { color:inherit; font-size:.9rem; text-underline-offset:3px; }
+    h1 { font-size:clamp(1.8rem,4.5vw,2.5rem); line-height:1.05; margin: 0 0 10px; }
+    h2 { font-size:1.2rem; margin:0 0 14px; }
+    p { line-height:1.5; }
+    .desc { color:#635d55; font-size:.95rem; margin:0 0 22px; }
+    .panel { background:#fff; border:1px solid #d9d1c5; padding:22px; margin:0 0 18px; }
+    .linea { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    label { font-weight:700; font-size:.86rem; display:block; margin-bottom:7px; }
+    input, textarea, select { font:inherit; padding:12px; border:1px solid #80786d; background:#fff; min-width:0; max-width:100%; }
+    input:focus, textarea:focus { outline:2px solid #4b382a; outline-offset:2px; }
+    .telefono-entrada { width:min(100%,260px); flex:1; }
+    .btn-simple { font:inherit; min-height:43px; border:1px solid #292421; background:transparent; color:#292421; padding:9px 14px; cursor:pointer; font-weight:650; }
+    .btn-simple:hover:not(:disabled) { background:#eee8de; }
+    .btn-primario { background:#1b1816; color:white; }
+    .btn-primario:hover:not(:disabled) { background:#3c322e; }
+    .btn-simple:disabled { opacity:.42; cursor:not-allowed; }
+    .muted { color:#6d665e; font-size:.88rem; }
+    .error { color:#9c1c20; }
+    .ok { color:#235e3a; }
+    .fila { display:grid; grid-template-columns:minmax(120px,1.2fr) minmax(75px,.7fr) minmax(190px,1.4fr) auto; gap:12px; align-items:center; padding:14px 0; border-bottom:1px solid #e7e1d9; }
+    .fila:last-child { border-bottom:none; }
+    .numero { font-weight:750; font-variant-numeric:tabular-nums; }
+    .saldo { color:#59544d; font-size:.88rem; }
+    .modificar { display:flex; align-items:center; gap:7px; }
+    .modificar button { height:35px; width:35px; padding:0; font-size:1.2rem; }
+    .modificar input { width:70px; text-align:center; height:35px; padding:4px; font-variant-numeric:tabular-nums; }
+    .nuevo { font-size:.8rem; color:#544f48; margin-top:5px; }
+    .peligro { border-color:#b28b84; }
+    .resumen { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; margin-top:18px; }
+    .resumen strong { font-size:1.1rem; }
+    .confirmacion { background:#eee7dc; border:1px solid #c9b9a5; }
+    .confirmacion ul { padding-left:19px; max-height:250px; overflow:auto; }
+    .confirmacion li { margin:7px 0; font-size:.88rem; }
+    .control-bloque { margin:18px 0 0; }
+    .control-bloque input[type='checkbox'] { width:18px; height:18px; }
+    .control-bloque label { display:inline; font-weight:500; }
+    #aviso { margin:12px 0 18px; min-height:20px; }
+    #paste { display:block; width:100%; min-height:95px; resize:vertical; margin:10px 0; }
+    .referencia { width:100%; }
+    @media (max-width:620px) {
+      .pagina { margin-top:20px; }
+      .panel { padding:16px; }
+      .fila { grid-template-columns:1fr auto; gap:10px; }
+      .fila .saldo { grid-column:1; }
+      .fila .modificar { grid-column:1; grid-row:3; }
+      .fila .quitar { grid-column:2; grid-row:3; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior:auto !important; } }
+  </style>
+</head>
+<body>
+<main class="pagina">
+  <div class="cab">
+    <img src="/assets/img/logo-negro-360.webp" alt="Pausa Coffee Express">
+    <a href="/personal">← Volver al panel del personal</a>
+  </div>
+  <h1>CARGA MASIVA</h1>
+  <p class="desc">Prepara los ajustes y revísalos antes de aplicarlos. Todos los cambios quedarán asociados a tu usuario.</p>
+  <p id="aviso" role="status" aria-live="polite">Verificando autorización...</p>
+
+  <div id="panel-editor" hidden>
+    <section class="panel">
+      <h2>Agregar clientes</h2>
+      <div class="linea">
+        <div class="telefono-entrada">
+          <label for="nuevo-telefono">Número de celular</label>
+          <input id="nuevo-telefono" inputmode="numeric" maxlength="8"
+                 autocomplete="off" placeholder="Ej. 71234567">
+        </div>
+        <button id="agregar" class="btn-simple btn-primario" type="button">+ Agregar</button>
+        <button id="mostrar-pegar" class="btn-simple" type="button">Pegar lista</button>
+      </div>
+      <div id="zona-pegar" hidden>
+        <label for="paste" style="margin-top:15px">Pega hasta 50 números (uno por línea o separados por espacios)</label>
+        <textarea id="paste" placeholder="70000011&#10;70000012&#10;70000013"></textarea>
+        <button id="agregar-lista" class="btn-simple" type="button">Agregar números</button>
+      </div>
+      <p class="muted" style="margin:12px 0 0">Máximo 50 clientes por lote. Agregar un número no modifica su saldo.</p>
+    </section>
+
+    <section class="panel">
+      <div class="linea" style="justify-content:space-between">
+        <h2>Clientes preparados</h2>
+        <button id="refrescar" class="btn-simple" type="button">↻ Actualizar saldos</button>
+      </div>
+      <div id="lista" aria-live="polite"></div>
+      <div class="resumen">
+        <div>
+          <strong id="total-clientes">0 clientes</strong>
+          <p id="total-variacion" class="muted" style="margin:3px 0 0">Variación total: 0 sellos</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Motivo y confirmación</h2>
+      <label for="tipo-motivo">Tipo de ajuste</label>
+      <select id="tipo-motivo" style="width:100%">
+        <option value="Migración de tarjetas físicas">Migración de tarjetas físicas</option>
+        <option value="Corrección autorizada">Corrección autorizada</option>
+      </select>
+      <div style="margin-top:16px">
+        <label for="referencia">Referencia o explicación (mínimo 8 caracteres)</label>
+        <input id="referencia" class="referencia" maxlength="145"
+               placeholder="Ej. Tarjetas verificadas, turno mañana 16/11">
+      </div>
+      <div class="control-bloque" id="grupo-tarjetas">
+        <input id="tarjetas-verificadas" type="checkbox">
+        <label for="tarjetas-verificadas">Confirmo que se verificaron y marcaron las tarjetas físicas para evitar acreditarlas dos veces.</label>
+      </div>
+      <p class="muted" style="margin:14px 0">La carga es todo o nada: si algún saldo cambió o es insuficiente, se rechaza el lote completo.</p>
+      <button id="revisar" class="btn-simple btn-primario" type="button">Revisar cambios</button>
+    </section>
+  </div>
+
+  <section id="panel-confirmacion" class="panel confirmacion" hidden>
+    <h2>Confirmar lote</h2>
+    <p id="resumen-confirmacion"></p>
+    <ul id="detalle-confirmacion"></ul>
+    <div class="linea">
+      <button id="aplicar" class="btn-simple btn-primario" type="button">Aplicar todos los cambios</button>
+      <button id="volver-editar" class="btn-simple" type="button">Volver a editar</button>
+    </div>
+  </section>
+
+  <section id="panel-pendiente" class="panel confirmacion" hidden>
+    <h2>Operación pendiente de confirmación</h2>
+    <p>Si se interrumpió la conexión, no crees otro lote. Comprueba o reintenta el mismo identificador.</p>
+    <p id="pendiente-id" class="muted"></p>
+    <button id="verificar-pendiente" class="btn-simple btn-primario" type="button">Verificar / reintentar lote</button>
+  </section>
+
+  <section id="panel-resultado" class="panel" hidden>
+    <h2>Resultado del lote</h2>
+    <p id="resultado-mensaje" role="status"></p>
+    <div id="resultado-detalles"></div>
+    <button id="nuevo-lote" class="btn-simple btn-primario" type="button">Preparar otro lote</button>
+  </section>
+</main>
+<script src="/assets/js/carga-masiva.js" defer></script>
+</body>
+</html>

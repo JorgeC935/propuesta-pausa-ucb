@@ -21,10 +21,8 @@
   function mostrarQr(numero, id, offline) {
     if (!UUID.test(String(id || "")) || typeof qrcode !== "function") return;
     var seccion = el("section", "pausa-qr");
-    var titulo = el("h2", null, "Mi QR de Pausa");
-    var ayuda = el("p", "muted small", offline
-      ? "Tu QR guardado funciona sin internet. El saldo necesita conexion."
-      : "Muestra este QR al personal. No hace falta internet para mostrarlo despues de guardarlo.");
+    var titulo = el("h2", null, "MI CÓDIGO QR");
+    var ayuda = el("p", "hint", offline ? "QR guardado · Muéstralo en caja" : "Muéstralo en caja");
     var imagen = el("div", "pausa-qr__imagen");
     try {
       var codigo = qrcode(0, "M");
@@ -32,8 +30,7 @@
       codigo.make();
       imagen.innerHTML = codigo.createSvgTag({ cellSize: 7, margin: 4, scalable: true });
     } catch (e) { return; }
-    var nota = el("p", "hint", "Este QR identifica tu cuenta de sellos, pero no autoriza compras ni canjes. Puedes guardar una captura.");
-    seccion.append(titulo, ayuda, imagen, nota);
+    seccion.append(titulo, imagen, ayuda);
     panel.appendChild(seccion);
   }
   var consultaActual = 0;
@@ -103,16 +100,48 @@
 
     var count = el("p", "count");
     count.appendChild(el("span", "count__n", String(n)));
-    count.appendChild(el("span", "count__of", "de " + meta + " sellos digitales"));
+    count.appendChild(el("span", "count__of", "sellos acumulados"));
     panel.appendChild(count);
 
-    var ul = el("ul", "stamps"); ul.setAttribute("aria-hidden", "true");
-    for (var i = 0; i < meta; i++) { var li = el("li", i < n ? "on" : ""); if (i < n) li.innerHTML = check(); ul.appendChild(li); }
+    var recompensas = Math.floor(n / meta);
+    var resto = n % meta;
+    // Si existen recompensas, mostramos la tarjeta completa en dorado;
+    // los sellos sobrantes se informan aparte, sin perder el saldo total.
+    var visibles = recompensas > 0 ? meta : n;
+    var ul = el("ul", "stamps" + (recompensas > 0 ? " stamps--ready" : ""));
+    ul.setAttribute("aria-hidden", "true");
+    for (var i = 0; i < meta; i++) {
+      var li = el("li", i < visibles ? "on" : "");
+      if (i < visibles) {
+        li.innerHTML = check();
+        li.style.setProperty("--orden", i);
+      }
+      ul.appendChild(li);
+    }
     panel.appendChild(ul);
 
-    if (n >= meta) panel.appendChild(el("p", null, "Ya tienes sellos suficientes para una recompensa. Solicita el canje al personal de Pausa."));
-    else if (n === 0) panel.appendChild(el("p", "muted", "Todavía no tienes sellos digitales. El personal registra tus sellos al confirmar la compra."));
-    else panel.appendChild(el("p", "muted", "Te faltan " + (meta - n) + " sellos para la próxima recompensa."));
+    if (recompensas > 0) {
+      var premio = el("section", "recompensa");
+      premio.setAttribute("role", "status");
+      var titulo = el("div", "recompensa__titulo");
+      titulo.appendChild(el("span", "recompensa__estrella", "✦"));
+      titulo.appendChild(el("span", null, "¡" + (recompensas === 1 ? "Tu recompensa está lista" : "Tienes " + recompensas + " recompensas listas") + "!"));
+      premio.appendChild(titulo);
+      premio.appendChild(el("p", "recompensa__detalle", "Solicita tu canje en caja."));
+      if (resto > 0) {
+        premio.appendChild(el("p", "recompensa__detalle", "Además, llevas " + resto + " de " + meta + " sellos hacia la siguiente recompensa."));
+        var barra = el("div", "recompensa__progreso");
+        var avance = el("span");
+        avance.style.width = Math.min(100, 100 * resto / meta) + "%";
+        barra.appendChild(avance);
+        premio.appendChild(barra);
+      }
+      panel.appendChild(premio);
+    } else if (n === 0) {
+      panel.appendChild(el("p", "avance-sellos", "Tu primer sello aparecerá después de tu próxima compra registrada."));
+    } else {
+      panel.appendChild(el("p", "avance-sellos", "Te faltan " + (meta - n) + " sellos para una recompensa."));
+    }
 
     if (UUID.test(String(data.qr_id || ""))) {
       guardarQr(numero, data.qr_id);

@@ -1,12 +1,12 @@
 /* Pausa V2: PWA publica sin guardar informacion privada en CacheStorage.
    Nunca interceptar API, paginas del personal ni administracion. */
-const VERSION = "pausa-publica-v5";
+const VERSION = "pausa-publica-v6";
 const SHELL = [
   "./puntos.html",
   "./assets/css/base.css",
   "./assets/js/config.js",
   "./assets/js/main.js",
-  "./assets/js/puntos.js",
+  "./assets/js/puntos.js?v=6",
   "./assets/js/qrcode.js",
   "./assets/icons/icon-192.png",
   "./manifest.webmanifest"

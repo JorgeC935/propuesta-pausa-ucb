@@ -101,14 +101,29 @@
       margin-bottom: 24px;
     }
 
-    .barra button {
-      border: none;
-      background: none;
-      text-decoration: underline;
+    .barra #cerrar-sesion {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      background: transparent;
+      color: var(--ink);
+      text-decoration: none;
       cursor: pointer;
-      font: inherit;
-      font-size: 0.85rem;
+      font: 700 0.82rem/1.3 var(--font);
+      white-space: nowrap;
+      transition: color .15s ease, background-color .15s ease;
     }
+    @media (hover: hover) {
+      .barra #cerrar-sesion:hover {
+        color: #fff;
+        background: var(--ink);
+      }
+    }
+    .barra #usuario-actual { overflow-wrap: anywhere; }
 
     .administracion {
       margin-top: 24px;
@@ -253,6 +268,17 @@
         <a class="btn btn--secondary"
             id="abrir-admin" href="/administracion">
             Abrir administración
+        </a>
+      </section>
+
+      <section id="zona-carga-masiva" class="administracion"
+               style="margin:0 0 20px" hidden>
+        <h2>Carga masiva de sellos</h2>
+        <p class="small" style="margin:0 0 12px">
+          Prepara los cambios de varios clientes en una sola operación.
+        </p>
+        <a class="btn btn--secondary" href="/carga-masiva">
+          Abrir carga masiva
         </a>
       </section>
 

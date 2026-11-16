@@ -141,6 +141,7 @@
       <h1>Administración</h1>
       <nav aria-label="Secciones de administración" class="acciones" style="margin-top:16px">
         <a href="#ajustes-negocio">WhatsApp</a>
+        <a href="#permisos-carga">Carga masiva</a>
         <a href="#usuarios-personal">Empleados</a>
         <a href="#historial-negocio">Historial</a>
       </nav>
@@ -165,6 +166,25 @@
             Guardar WhatsApp
           </button>
         </form>
+      </section>
+
+      <section class="panel" id="permisos-carga">
+        <h2>Carga masiva de sellos</h2>
+        <p class="small" style="margin:0 0 12px">
+          El administrador siempre puede utilizarla. Puedes habilitarla por
+          un tiempo definido o mantenerla activa hasta desactivarla manualmente.
+        </p>
+        <p id="estado-permiso-carga" role="status" style="margin:0 0 16px"></p>
+        <div class="acciones" style="margin-bottom:16px">
+          <button id="permiso-carga-2" type="button">Habilitar 2 horas</button>
+          <button id="permiso-carga-24" type="button">Habilitar 24 horas</button>
+          <button id="permiso-carga-indefinida" type="button">Sin límite de tiempo</button>
+          <button id="permiso-carga-0" type="button">Deshabilitar</button>
+        </div>
+        <a class="accion secundaria" href="/carga-masiva"
+           style="display:inline-block;text-decoration:none">
+          Abrir carga masiva
+        </a>
       </section>
 
       <section class="panel" id="usuarios-personal">

@@ -49,7 +49,7 @@ export async function onRequestGet({ request, env }) {
     const desplazamiento = (pagina - 1) * limite;
 
     const condiciones = [
-      "m.tipo IN ('compra', 'canje')"
+      "(m.tipo IN ('compra', 'canje') OR m.lote_id IS NOT NULL)"
     ];
 
     const parametros = [empleado.id, empleado.rol];
@@ -81,6 +81,8 @@ export async function onRequestGet({ request, env }) {
         m.tipo,
         m.sellos,
         m.creado_en,
+        m.lote_id,
+        lote.motivo AS lote_motivo,
         c.telefono,
         e.usuario AS registrado_por,
         cor.tipo AS correccion_tipo,
@@ -112,6 +114,9 @@ export async function onRequestGet({ request, env }) {
       FROM movimientos m
       JOIN clientes c ON c.id = m.cliente_id
       JOIN empleados e ON e.id = m.empleado_id
+
+      LEFT JOIN lotes_carga lote
+        ON lote.id = m.lote_id
 
       LEFT JOIN correcciones cor
         ON cor.movimiento_original_id = m.id

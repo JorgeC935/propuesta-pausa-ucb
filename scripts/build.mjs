@@ -11,6 +11,7 @@ const archivos = [
   "puntos.html",
   "personal.html",
   "administracion.html",
+  "carga-masiva.html",
   "qr.html",
   "manifest.webmanifest",
   "sw.js",
